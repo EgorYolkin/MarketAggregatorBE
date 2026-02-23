@@ -21,21 +21,33 @@ type AlertRequest struct {
 	ThresholdPercent float64 `json:"threshold_percent"`
 }
 
+func getDockerComposeCmd(args ...string) *exec.Cmd {
+	// Try 'docker compose' (v2 plugin) first
+	cmd := exec.Command("docker", append([]string{"compose"}, args...)...)
+	if err := exec.Command("docker", "compose", "version").Run(); err == nil {
+		return cmd
+	}
+	// Fallback to 'docker-compose' (v1 standalone)
+	return exec.Command("docker-compose", args...)
+}
+
 func TestBlackBoxE2E(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping E2E test in short mode")
 	}
 
-	// 1. Build and spin up the environment (docker-compose up -d --build)
-	cmdUp := exec.Command("docker-compose", "-f", "docker-compose.yml", "-f", "tests/e2e/docker-compose.e2e.yml", "up", "-d", "--build")
-	cmdUp.Dir = "../../" // Point to the project root where docker-compose.yml is located
+	composeFiles := []string{"-f", "docker-compose.yml", "-f", "tests/e2e/docker-compose.e2e.yml"}
+
+	// 1. Build and spin up the environment
+	cmdUp := getDockerComposeCmd(append(composeFiles, "up", "-d", "--build")...)
+	cmdUp.Dir = "../../"
 	if out, err := cmdUp.CombinedOutput(); err != nil {
-		t.Fatalf("Failed to spin up docker-compose: %v\nOutput: %s", err, string(out))
+		t.Fatalf("Failed to spin up docker: %v\nOutput: %s", err, string(out))
 	}
 
-	// Deferred environment cleanup (docker-compose down)
+	// Deferred environment cleanup
 	defer func() {
-		cmdDown := exec.Command("docker-compose", "-f", "docker-compose.yml", "-f", "tests/e2e/docker-compose.e2e.yml", "down", "-v")
+		cmdDown := getDockerComposeCmd(append(composeFiles, "down", "-v")...)
 		cmdDown.Dir = "../../"
 		_ = cmdDown.Run()
 	}()
