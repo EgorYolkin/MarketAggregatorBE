@@ -23,12 +23,12 @@ type AlertRequest struct {
 
 func getDockerComposeCmd(args ...string) *exec.Cmd {
 	// Try 'docker compose' (v2 plugin) first
-	cmd := exec.Command("docker", append([]string{"compose"}, args...)...)
+	cmd := exec.Command("docker", append([]string{"compose"}, args...)...) //nolint:gosec // arguments are controlled in tests.
 	if err := exec.Command("docker", "compose", "version").Run(); err == nil {
 		return cmd
 	}
 	// Fallback to 'docker-compose' (v1 standalone)
-	return exec.Command("docker-compose", args...)
+	return exec.Command("docker-compose", args...) //nolint:gosec // arguments are controlled in tests.
 }
 
 func TestBlackBoxE2E(t *testing.T) {
