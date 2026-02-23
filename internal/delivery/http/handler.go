@@ -1,4 +1,4 @@
-package http
+package http //nolint:revive // intentional: delivery/http is a common Go package layout pattern.
 
 import (
 	"context"
