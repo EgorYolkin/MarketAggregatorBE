@@ -1,0 +1,39 @@
+# Build artifacts
+bin/
+market-aggregator
+
+# Dependencies
+vendor/
+
+# Go test and coverage
+*.test
+*.out
+coverage.txt
+coverage.out
+
+# Environment files
+.env
+.env.local
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Documentation and CI (not needed in the image)
+README.md
+Makefile
+.github/
+.golangci.yml
+docker-compose.yml
+tests/

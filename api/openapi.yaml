@@ -1,0 +1,165 @@
+openapi: 3.0.0
+info:
+  title: Market Aggregator API
+  version: 1.0.0
+  description: >
+    API for retrieving aggregated cryptocurrency prices from multiple sources 
+    and managing webhook alerts based on price threshold triggers.
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+paths:
+  /v1/health:
+    get:
+      summary: Liveness and Readiness check
+      description: Returns the health status of the application and underlying dependencies (e.g. Redis).
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+        '503':
+          description: Service Unavailable (Redis down)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "service unavailable: redis not responding"
+
+  /v1/assets:
+    get:
+      summary: List all tracked assets
+      description: Returns an array of all currently tracked assets with their aggregated prices and per-source breakdown.
+      responses:
+        '200':
+          description: A list of asset prices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AssetResponse'
+        '500':
+          description: Internal Server Error
+
+  /v1/assets/{symbol}:
+    get:
+      summary: Single asset breakdown
+      description: Returns the aggregated price and per-source breakdown for a specific asset symbol.
+      parameters:
+        - in: path
+          name: symbol
+          required: true
+          schema:
+            type: string
+          description: The asset symbol (e.g., BTC, ETH)
+      responses:
+        '200':
+          description: Detailed breakdown of the requested asset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetResponse'
+        '404':
+          description: Asset not found or not tracked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "asset not found"
+        '500':
+          description: Internal Server Error
+
+  /v1/alerts:
+    post:
+      summary: Register a webhook alert
+      description: Registers a webhook URL to be called when the price of the specified asset changes by the threshold percentage.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertRequest'
+      responses:
+        '201':
+          description: Webhook registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "webhook registered successfully"
+                  subscription_id:
+                    type: string
+                    format: uuid
+                    example: "123e4567-e89b-12d3-a456-426614174000"
+                  base_price:
+                    type: number
+                    format: float
+                    example: 50000.0
+        '400':
+          description: Bad request (invalid payload, missing symbol, invalid URL, or negative threshold)
+        '404':
+          description: Target asset not tracked
+        '500':
+          description: Internal Server Error
+
+components:
+  schemas:
+    AssetResponse:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: BTC
+        aggregated_price:
+          type: number
+          format: float
+          example: 52400.5
+        sources:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+          example:
+            Binance: 52401.0
+            CoinGecko: 52400.0
+        updated_at:
+          type: string
+          format: date-time
+          example: "2026-02-23T15:00:00Z"
+          
+    AlertRequest:
+      type: object
+      required:
+        - symbol
+        - target_url
+        - threshold_percent
+      properties:
+        symbol:
+          type: string
+          example: BTC
+        target_url:
+          type: string
+          format: uri
+          example: "https://my-service.com/webhook"
+        threshold_percent:
+          type: number
+          format: float
+          description: "Percentage price change to trigger the alert (e.g. 5.0 for 5%)"
+          example: 5.0

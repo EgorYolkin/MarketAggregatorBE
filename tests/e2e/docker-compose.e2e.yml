@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  redis:
+    # Remove host port mapping to avoid conflicts with local redis
+    ports: []
+
+  app:
+    # Use a different port to avoid conflicts with local app instances
+    ports:
+      - "8081:8080"
