@@ -81,13 +81,28 @@ func TestBlackBoxE2E(t *testing.T) {
 	}))
 	defer mockWebhookTarget.Close()
 
-	// 4. Webhook registration (POST /v1/alerts)
-	// We set a threshold of 0.00000001% so that any micro-change in price (common in crypto markets) triggers the webhook.
-	// For testing purposes, a mock source could be used, but since this is a Black-Box test, we listen to real quotes.
+	// 4. Wait for asset availability (ensures first aggregation cycle finished)
+	assetReady := false
+	for i := 0; i < 20; i++ {
+		resp, err := client.Get(appURL + "/v1/assets/BTC")
+		if err == nil && resp.StatusCode == http.StatusOK {
+			_ = resp.Body.Close()
+			assetReady = true
+			break
+		}
+		if resp != nil {
+			_ = resp.Body.Close()
+		}
+		time.Sleep(1 * time.Second)
+	}
+	require.True(t, assetReady, "Asset BTC did not become available in time")
+
+	// 5. Webhook registration (POST /v1/alerts)
+	// We set a threshold of 0.00000001% so that any micro-change in price triggers the webhook.
 	alertReq := AlertRequest{
 		Symbol:           "BTC",
 		TargetURL:        mockWebhookTarget.URL,
-		ThresholdPercent: 0.00000001, // Microscopic threshold to trigger at the next tick (if price updates)
+		ThresholdPercent: 0.00000001,
 	}
 
 	reqBody, _ := json.Marshal(alertReq)
@@ -97,16 +112,15 @@ func TestBlackBoxE2E(t *testing.T) {
 
 	require.Equal(t, http.StatusCreated, resp.StatusCode)
 
-	// 5. Waiting for the worker to trigger
-	// docker-compose has POLL_INTERVAL=30s by default. We wait up to 35 seconds.
-	// In production-like E2E tests, it's better to set POLL_INTERVAL=5s in docker-compose.yml.
+	// 6. Waiting for the worker to trigger
+	// docker-compose has POLL_INTERVAL=5s in E2E. We wait up to 15 seconds.
 	select {
 	case payload := <-webhookReceivedChan:
 		// Webhook received successfully!
 		t.Logf("Received webhook payload: %s", payload)
 		assert.Contains(t, payload, "\"symbol\":\"BTC\"")
 		assert.Contains(t, payload, "\"change_pct\":")
-	case <-time.After(35 * time.Second): // 35 seconds
+	case <-time.After(15 * time.Second):
 		// The market price might not have changed at all during these 35 seconds.
 		// Black-Box E2E with the real external world is inherently flaky.
 		// At the very least, we verify that we reached this step without infrastructure errors.
