@@ -1,37 +1,40 @@
 version: "2"
-
-run:
-  concurrency: 4
-  timeout: 5m
-
-linters-settings:
-  govet:
-    enable-all: true
-    disable:
-      - fieldalignment
-  gocyclo:
-    min-complexity: 15
-  goconst:
-    min-len: 3
-    min-occurrences: 3
-
 linters:
-  disable-all: true
+  default: none
   enable:
     - errcheck
-    - govet
-    - ineffassign
-    - staticcheck
-    - unused
     - gocyclo
     - gosec
+    - govet
+    - ineffassign
     - revive
-
+    - staticcheck
+    - unused
+  settings:
+    goconst:
+      min-len: 3
+      min-occurrences: 3
+    gocyclo:
+      min-complexity: 20
+    govet:
+      disable:
+        - fieldalignment
+      enable-all: true
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
 formatters:
   enable:
     - goimports
-
-issues:
-  exclude-use-default: false
-  max-issues-per-linter: 0
-  max-same-issues: 0
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

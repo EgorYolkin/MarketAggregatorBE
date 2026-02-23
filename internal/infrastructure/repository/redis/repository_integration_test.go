@@ -25,8 +25,8 @@ func TestRedisRepository_Integration(t *testing.T) {
 		t.Fatalf("failed to start redis container: %s", err)
 	}
 	defer func() {
-		if err := redisContainer.Terminate(ctx); err != nil {
-			t.Fatalf("failed to terminate redis container: %s", err)
+		if e := redisContainer.Terminate(ctx); e != nil {
+			t.Fatalf("failed to terminate redis container: %s", e)
 		}
 	}()
 

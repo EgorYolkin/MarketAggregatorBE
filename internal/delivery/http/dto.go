@@ -1,5 +1,6 @@
 // Package http implements the HTTP delivery layer using Fiber.
-package http
+// Package http implements the HTTP delivery layer DTOs.
+package http //nolint:revive // intentional: delivery/http is a common Go package layout pattern.
 
 import "time"
 

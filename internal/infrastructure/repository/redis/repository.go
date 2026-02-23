@@ -176,13 +176,13 @@ func (r *Repository) UpdateBasePrice(ctx context.Context, id string, newPrice fl
 	var foundJSON string
 
 	for _, k := range keys {
-		val, err := r.client.HGet(ctx, k, id).Result()
-		if err == nil && val != "" {
+		val, e := r.client.HGet(ctx, k, id).Result()
+		if e == nil && val != "" {
 			foundSymbolKey = k
 			foundJSON = val
 			break
-		} else if err != nil && !errors.Is(err, redis.Nil) {
-			return err
+		} else if e != nil && !errors.Is(e, redis.Nil) {
+			return e
 		}
 	}
 
@@ -191,8 +191,8 @@ func (r *Repository) UpdateBasePrice(ctx context.Context, id string, newPrice fl
 	}
 
 	var dto WebhookSubscriptionDTO
-	if err := json.Unmarshal([]byte(foundJSON), &dto); err != nil {
-		return err
+	if e := json.Unmarshal([]byte(foundJSON), &dto); e != nil {
+		return e
 	}
 
 	dto.BasePrice = newPrice
